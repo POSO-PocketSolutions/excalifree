@@ -1,0 +1,7 @@
+services:
+  excalidraw:
+    image: excalidraw/excalidraw:latest
+    container_name: excalidraw-home
+    restart: unless-stopped
+    ports:
+      - "3030:80"
