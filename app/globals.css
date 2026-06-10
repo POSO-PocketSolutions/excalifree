@@ -106,8 +106,6 @@ input {
 }
 
 .editor-page {
-  display: grid;
-  grid-template-rows: auto 1fr;
   height: 100vh;
 }
 
@@ -130,7 +128,26 @@ input {
 }
 
 .editor-canvas {
+  height: 100vh;
   min-height: 0;
+}
+
+.excalidraw-home-menu-link {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  min-height: 32px;
+  padding: 0 0.625rem;
+}
+
+.excalidraw-home-menu-link:hover {
+  background: var(--button-gray-1);
+}
+
+.excalidraw-home-save-state {
+  color: var(--color-gray-60);
+  font-size: 12px;
+  padding: 0 0.625rem;
 }
 
 @media (max-width: 640px) {

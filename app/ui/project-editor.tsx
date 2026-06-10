@@ -1,13 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Project } from "../server/projects";
 
 import "@excalidraw/excalidraw/index.css";
 
-const Excalidraw = dynamic(async () => (await import("@excalidraw/excalidraw")).Excalidraw, {
+const ExcalidrawCanvas = dynamic(async () => (await import("./excalidraw-canvas")).ExcalidrawCanvas, {
   ssr: false
 });
 
@@ -103,12 +102,22 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
   }
 
   async function openPresentation() {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      window.alert("El navegador bloqueo la ventana de presentacion.");
+      return;
+    }
+
+    printWindow.document.write(`<!doctype html><title>Preparando presentacion</title><body style="font-family:system-ui;padding:24px">Preparando presentacion...</body>`);
+    printWindow.document.close();
+
     const currentProject = project.current;
     const elements = currentProject.elements as readonly SceneElement[];
     const frames = getFrames(elements);
 
     if (frames.length === 0) {
       window.alert("No hay frames para exportar.");
+      printWindow.close();
       return;
     }
 
@@ -143,13 +152,6 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
     }
 
     const title = escapeHtml(currentProject.title || "Presentacion");
-    const printWindow = window.open("", "_blank", "noopener,noreferrer");
-    if (!printWindow) {
-      window.alert("El navegador bloqueo la ventana de presentacion.");
-      setSaveState("guardado");
-      return;
-    }
-
     printWindow.document.write(`<!doctype html>
 <html lang="es">
 <head>
@@ -181,31 +183,30 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
     setSaveState("guardado");
   }
 
+  function renameProject() {
+    const nextTitle = window.prompt("Nombre del proyecto", title)?.trim();
+    if (!nextTitle) return;
+    setTitle(nextTitle);
+    scheduleSave({ ...project.current, title: nextTitle });
+  }
+
   return (
     <main className="editor-page">
-      <header className="editor-toolbar">
-        <div className="row">
-          <Link className="button secondary" href="/">Volver</Link>
-          <input
-            className="editor-title"
-            onChange={(event) => {
-              const nextTitle = event.target.value;
-              setTitle(nextTitle);
-              scheduleSave({ ...project.current, title: nextTitle });
-            }}
-            value={title}
-          />
-          <span className="muted">{saveState}</span>
-        </div>
-        <div className="row">
-          <button className="button secondary" onClick={openPresentation} type="button">Presentar / PDF</button>
-          <button className="button secondary" onClick={downloadProject} type="button">Exportar</button>
-        </div>
-      </header>
-
       <section className="editor-canvas">
-        <Excalidraw
+        <ExcalidrawCanvas
           initialData={initialData.current}
+          name={title}
+          saveState={saveState}
+          onDownload={downloadProject}
+          onOpenPresentation={openPresentation}
+          onRename={renameProject}
+          UIOptions={{
+            canvasActions: {
+              export: false,
+              loadScene: false,
+              saveToActiveFile: false
+            }
+          }}
           onChange={(elements, appState, files) => {
             scheduleSave({
               ...project.current,
