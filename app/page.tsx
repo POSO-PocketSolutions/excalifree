@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { CreateProject } from "./ui/create-project";
-import { deleteProject, listProjects } from "./server/projects";
+import { redirect } from "next/navigation";
+import { createProject, deleteProject, listProjects } from "./server/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +8,14 @@ async function removeProject(formData: FormData) {
   "use server";
   const id = String(formData.get("id") || "");
   await deleteProject(id);
+}
+
+async function addProject(formData: FormData) {
+  "use server";
+  const title = String(formData.get("title") || "").trim();
+  if (!title) return;
+  const project = await createProject(title);
+  redirect(`/projects/${project.id}`);
 }
 
 export default async function HomePage() {
@@ -20,7 +28,10 @@ export default async function HomePage() {
           <p className="muted">Excalidraw self-hosted</p>
           <h1 className="title">Tus proyectos</h1>
         </div>
-        <CreateProject />
+        <form action={addProject} className="row">
+          <input className="input" name="title" placeholder="Nombre del proyecto" required />
+          <button className="button" type="submit">Crear</button>
+        </form>
       </section>
 
       <section className="grid">
