@@ -28,9 +28,17 @@ Los proyectos se guardan en el volumen `excalidraw_data`.
 
 En el editor, usar frames de Excalidraw como diapositivas.
 
-El boton `Presentar / PDF` abre una vista imprimible con una pagina por frame, ordenadas de arriba a abajo y de izquierda a derecha.
+El menu `Presentar` abre un modo presentacion con una diapositiva por frame.
 
-Desde esa vista se puede presentar en pantalla o usar `Guardar PDF`.
+Atajos:
+
+```text
+Flecha derecha / Espacio: siguiente
+Flecha izquierda: anterior
+Escape: salir
+```
+
+El menu `Guardar PDF` abre una vista imprimible con una pagina por frame.
 
 ## Apagar
 

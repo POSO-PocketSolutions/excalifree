@@ -101,27 +101,16 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
     URL.revokeObjectURL(url);
   }
 
-  async function openPresentation() {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      window.alert("El navegador bloqueo la ventana de presentacion.");
-      return;
-    }
-
-    printWindow.document.write(`<!doctype html><title>Preparando presentacion</title><body style="font-family:system-ui;padding:24px">Preparando presentacion...</body>`);
-    printWindow.document.close();
-
+  async function exportFrameSlides() {
     const currentProject = project.current;
     const elements = currentProject.elements as readonly SceneElement[];
     const frames = getFrames(elements);
 
     if (frames.length === 0) {
-      window.alert("No hay frames para exportar.");
-      printWindow.close();
-      return;
+      window.alert("No hay frames para presentar.");
+      return null;
     }
 
-    setSaveState("exportando");
     const { exportToSvg } = await import("@excalidraw/excalidraw");
     const slides = [];
 
@@ -151,13 +140,100 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
       slides.push(new XMLSerializer().serializeToString(svg));
     }
 
-    const title = escapeHtml(currentProject.title || "Presentacion");
+    return {
+      title: escapeHtml(currentProject.title || "Presentacion"),
+      slides
+    };
+  }
+
+  async function openPresentation() {
+    const presentationWindow = window.open("", "_blank");
+    if (!presentationWindow) {
+      window.alert("El navegador bloqueo la ventana de presentacion.");
+      return;
+    }
+
+    presentationWindow.document.write(`<!doctype html><title>Preparando presentacion</title><body style="background:#111;color:#fff;font-family:system-ui;margin:0;padding:24px">Preparando presentacion...</body>`);
+    presentationWindow.document.close();
+
+    setSaveState("exportando");
+    const presentation = await exportFrameSlides();
+    if (!presentation) {
+      presentationWindow.close();
+      setSaveState("guardado");
+      return;
+    }
+
+    presentationWindow.document.write(`<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${presentation.title}</title>
+  <style>
+    html, body { background: #000; height: 100%; margin: 0; overflow: hidden; width: 100%; }
+    .slide { align-items: center; background: #fff; display: none; height: 100vh; justify-content: center; width: 100vw; }
+    .slide.active { display: flex; }
+    .slide svg { display: block; max-height: 100vh; max-width: 100vw; }
+  </style>
+</head>
+<body>
+  ${presentation.slides.map((slide, index) => `<section class="slide${index === 0 ? " active" : ""}">${slide}</section>`).join("\n")}
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    let index = 0;
+    function show(next) {
+      slides[index].classList.remove('active');
+      index = Math.max(0, Math.min(slides.length - 1, next));
+      slides[index].classList.add('active');
+    }
+    function exitPresentation() {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().finally(() => window.close());
+      } else {
+        window.close();
+      }
+    }
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') exitPresentation();
+      if (['ArrowRight', 'PageDown', ' ', 'Enter'].includes(event.key)) { event.preventDefault(); show(index + 1); }
+      if (['ArrowLeft', 'PageUp', 'Backspace'].includes(event.key)) { event.preventDefault(); show(index - 1); }
+      if (event.key.toLowerCase() === 'home') show(0);
+      if (event.key.toLowerCase() === 'end') show(slides.length - 1);
+    });
+    document.addEventListener('click', () => show(index + 1));
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  </script>
+</body>
+</html>`);
+    presentationWindow.document.close();
+    setSaveState("guardado");
+  }
+
+  async function openPrintablePdf() {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      window.alert("El navegador bloqueo la ventana de PDF.");
+      return;
+    }
+
+    printWindow.document.write(`<!doctype html><title>Preparando PDF</title><body style="font-family:system-ui;padding:24px">Preparando PDF...</body>`);
+    printWindow.document.close();
+
+    setSaveState("exportando");
+    const presentation = await exportFrameSlides();
+    if (!presentation) {
+      printWindow.close();
+      setSaveState("guardado");
+      return;
+    }
+
     printWindow.document.write(`<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${title}</title>
+  <title>${presentation.title}</title>
   <style>
     html, body { margin: 0; background: #111; color: #fff; font-family: system-ui, sans-serif; }
     .toolbar { position: fixed; z-index: 10; top: 12px; right: 12px; display: flex; gap: 8px; }
@@ -176,7 +252,7 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
   <div class="toolbar">
     <button onclick="window.print()">Guardar PDF</button>
   </div>
-  ${slides.map((slide) => `<section class="slide">${slide}</section>`).join("\n")}
+  ${presentation.slides.map((slide) => `<section class="slide">${slide}</section>`).join("\n")}
 </body>
 </html>`);
     printWindow.document.close();
@@ -198,6 +274,7 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
           name={title}
           saveState={saveState}
           onDownload={downloadProject}
+          onOpenPdf={openPrintablePdf}
           onOpenPresentation={openPresentation}
           onRename={renameProject}
           UIOptions={{

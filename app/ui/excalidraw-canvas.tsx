@@ -11,6 +11,7 @@ type ExcalidrawCanvasProps = {
   UIOptions: any;
   onChange: (...args: any[]) => void;
   onDownload: () => void;
+  onOpenPdf: () => void;
   onOpenPresentation: () => void;
   onRename: () => void;
 };
@@ -26,6 +27,7 @@ export function ExcalidrawCanvas({
   UIOptions,
   onChange,
   onDownload,
+  onOpenPdf,
   onOpenPresentation,
   onRename
 }: ExcalidrawCanvasProps) {
@@ -35,7 +37,8 @@ export function ExcalidrawCanvas({
         <MainMenu.Group title="Proyecto">
           <Link className="excalidraw-home-menu-link" href="/">Volver a proyectos</Link>
           <MenuItem onSelect={onRename}>Renombrar</MenuItem>
-          <MenuItem onSelect={onOpenPresentation}>Presentar / PDF</MenuItem>
+          <MenuItem onSelect={onOpenPresentation}>Presentar</MenuItem>
+          <MenuItem onSelect={onOpenPdf}>Guardar PDF</MenuItem>
           <MenuItem onSelect={onDownload}>Exportar .excalidraw</MenuItem>
         </MainMenu.Group>
         <MainMenu.Separator />
