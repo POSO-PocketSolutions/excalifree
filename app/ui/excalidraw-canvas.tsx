@@ -3,9 +3,13 @@
 import Link from "next/link";
 import { Excalidraw, MainMenu } from "@excalidraw/excalidraw";
 import type { ReactNode } from "react";
+import type { Language } from "./i18n";
+import { LanguageToggle } from "./i18n";
 
 type ExcalidrawCanvasProps = {
   initialData: any;
+  language: Language;
+  labels: Record<string, string>;
   name: string;
   saveState: string;
   UIOptions: any;
@@ -22,6 +26,8 @@ function MenuItem({ children, onSelect }: { children: ReactNode; onSelect: () =>
 
 export function ExcalidrawCanvas({
   initialData,
+  language,
+  labels,
   name,
   saveState,
   UIOptions,
@@ -32,14 +38,20 @@ export function ExcalidrawCanvas({
   onRename
 }: ExcalidrawCanvasProps) {
   return (
-    <Excalidraw initialData={initialData} name={name} UIOptions={UIOptions} onChange={onChange}>
+    <Excalidraw
+      initialData={initialData}
+      langCode={language === "es" ? "es-ES" : "en"}
+      name={name}
+      UIOptions={UIOptions}
+      onChange={onChange}
+    >
       <MainMenu>
-        <MainMenu.Group title="Proyecto">
-          <Link className="excalidraw-home-menu-link" href="/">Volver a proyectos</Link>
-          <MenuItem onSelect={onRename}>Renombrar</MenuItem>
-          <MenuItem onSelect={onOpenPresentation}>Presentar</MenuItem>
-          <MenuItem onSelect={onOpenPdf}>Guardar PDF</MenuItem>
-          <MenuItem onSelect={onDownload}>Exportar .excalidraw</MenuItem>
+        <MainMenu.Group title={labels.projectMenu}>
+          <Link className="excalidraw-home-menu-link" href="/">{labels.backToProjects}</Link>
+          <MenuItem onSelect={onRename}>{labels.rename}</MenuItem>
+          <MenuItem onSelect={onOpenPresentation}>{labels.present}</MenuItem>
+          <MenuItem onSelect={onOpenPdf}>{labels.savePdf}</MenuItem>
+          <MenuItem onSelect={onDownload}>{labels.exportFile}</MenuItem>
         </MainMenu.Group>
         <MainMenu.Separator />
         <MainMenu.Group title="Excalidraw">
@@ -50,7 +62,10 @@ export function ExcalidrawCanvas({
         </MainMenu.Group>
         <MainMenu.Separator />
         <MainMenu.ItemCustom>
-          <span className="excalidraw-home-save-state">{saveState}</span>
+          <div className="excalidraw-home-menu-footer">
+            <span className="excalidraw-home-save-state">{saveState}</span>
+            <LanguageToggle />
+          </div>
         </MainMenu.ItemCustom>
       </MainMenu>
     </Excalidraw>

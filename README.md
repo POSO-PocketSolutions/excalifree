@@ -1,83 +1,127 @@
 # Excalidraw Home
 
-Excalidraw self-hosted con proyectos locales.
+Self-hosted Excalidraw with local projects, autosave, frame presentations, and PDF export.
 
 ## Architecture
 
-This is a small Next.js app.
-
-- The home page lists local projects.
-- Each project opens the Excalidraw editor.
-- Projects are saved as JSON files in `/data`.
-- Docker stores `/data` in the `excalidraw_data` volume.
-- `docker-compose.yml` runs the app on port `3030`.
-- Cloudflare Tunnel can later point `excali.mnsosa.com` to `http://localhost:3030`.
-
-Main files:
+This is a small Next.js app wrapped in Docker.
 
 ```text
-app/page.tsx                    Project list
-app/projects/[id]/page.tsx      Project editor page
-app/ui/project-editor.tsx       Saving, export, presentation logic
-app/ui/excalidraw-canvas.tsx    Excalidraw canvas and custom menu
-app/server/projects.ts          Project file storage
-docker-compose.yml              Local Docker service
+Browser
+  -> Next.js app on port 3030
+      -> Project dashboard
+      -> Excalidraw editor
+      -> API routes for project data
+          -> JSON files in /data
+              -> Docker volume excalidraw_data
 ```
 
-## Uso
+Main parts:
+
+```text
+app/page.tsx                    Loads projects for the dashboard
+app/ui/dashboard.tsx            Project list, create, delete, language switch
+app/projects/[id]/page.tsx      Loads one project
+app/ui/project-editor.tsx       Autosave, export, presentation logic
+app/ui/excalidraw-canvas.tsx    Excalidraw canvas and custom menu
+app/ui/i18n.tsx                 English / Spanish UI strings
+app/server/projects.ts          Reads and writes project JSON files
+app/api/projects/*              Project API routes
+docker-compose.yml              Local Docker service
+Dockerfile                      Production Next.js image
+```
+
+## Features
+
+- Local project dashboard.
+- English and Spanish UI.
+- Excalidraw editor with autosave.
+- Projects stored as JSON files.
+- Custom Excalidraw menu without social links.
+- Frame-based presentation mode.
+- Printable PDF view, one page per frame.
+- Docker restart policy: `unless-stopped`.
+
+## Run Locally
 
 ```bash
 docker compose up -d --build
 ```
 
-Abrir:
+Open:
 
 ```text
 http://localhost:3030
 ```
 
-Desde otra maquina de la red:
+From another device on the same network:
 
 ```text
 http://desktop:3030
 ```
 
-## Datos
+## Deploy
 
-Los proyectos se guardan en el volumen `excalidraw_data`.
+1. Copy the project to the server.
+2. Make sure Docker and Docker Compose are installed.
+3. Start the app:
 
-## Presentaciones
-
-En el editor, usar frames de Excalidraw como diapositivas.
-
-El menu `Presentar` abre un modo presentacion con una diapositiva por frame.
-
-Atajos:
-
-```text
-Flecha derecha / Espacio: siguiente
-Flecha izquierda: anterior
-Escape: salir
+```bash
+docker compose up -d --build
 ```
 
-El menu `Guardar PDF` abre una vista imprimible con una pagina por frame.
+4. Check the container:
 
-## Apagar
+```bash
+docker compose ps
+```
+
+5. Open the app on port `3030`.
+
+## Data
+
+Projects are saved in `/data` inside the container.
+
+Docker persists that folder in the `excalidraw_data` volume.
+
+Useful commands:
 
 ```bash
 docker compose down
+docker compose up -d --build
+docker volume ls
 ```
 
-## Reinicio automatico
+## Presentations
 
-El contenedor usa `restart: unless-stopped`, asi que vuelve a iniciar con Docker salvo que se apague manualmente.
+Use Excalidraw frames as slides.
 
-## Cloudflare Tunnel
-
-Cuando se quiera publicar como `excali.mnsosa.com`, apuntar el tunnel a:
+Menu actions:
 
 ```text
-http://localhost:3030
+Present       Open slideshow mode
+Save PDF      Open printable PDF view
 ```
 
-Si queda publico, cualquiera con la URL puede abrir y editar proyectos. Para restringirlo, usar Cloudflare Access.
+Slideshow shortcuts:
+
+```text
+Right arrow / Space / Enter    Next slide
+Left arrow / Backspace         Previous slide
+Home                           First slide
+End                            Last slide
+Escape                         Exit
+```
+
+## Development
+
+```bash
+npm install
+npm run dev
+```
+
+Production build:
+
+```bash
+npm run build
+```

@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import type { Project } from "../server/projects";
+import { useLanguage } from "./i18n";
 
 import "@excalidraw/excalidraw/index.css";
 
@@ -10,7 +11,7 @@ const ExcalidrawCanvas = dynamic(async () => (await import("./excalidraw-canvas"
   ssr: false
 });
 
-type SaveState = "guardado" | "guardando" | "cambios" | "exportando";
+type SaveState = "saved" | "saving" | "changes" | "exporting";
 
 type SceneElement = Record<string, any>;
 
@@ -58,28 +59,29 @@ function escapeHtml(value: string) {
 }
 
 export function ProjectEditor({ initialProject }: { initialProject: Project }) {
+  const { language, t } = useLanguage();
   const [title, setTitle] = useState(initialProject.title);
-  const [saveState, setSaveState] = useState<SaveState>("guardado");
+  const [saveState, setSaveState] = useState<SaveState>("saved");
   const initialData = useRef({ elements: initialProject.elements, files: initialProject.files });
   const project = useRef(initialProject);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveVersion = useRef(0);
 
   async function save(nextProject: Project, version: number) {
-    setSaveState("guardando");
+    setSaveState("saving");
     await fetch(`/api/projects/${nextProject.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(nextProject)
     });
-    if (saveVersion.current === version) setSaveState("guardado");
+    if (saveVersion.current === version) setSaveState("saved");
   }
 
   function scheduleSave(nextProject: Project, showPending = true) {
     project.current = nextProject;
     saveVersion.current += 1;
     const version = saveVersion.current;
-    if (showPending) setSaveState("cambios");
+    if (showPending) setSaveState("changes");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => save(nextProject, version), 800);
   }
@@ -107,7 +109,7 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
     const frames = getFrames(elements);
 
     if (frames.length === 0) {
-      window.alert("No hay frames para presentar.");
+      window.alert(t.noFrames);
       return null;
     }
 
@@ -141,7 +143,7 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
     }
 
     return {
-      title: escapeHtml(currentProject.title || "Presentacion"),
+      title: escapeHtml(currentProject.title || (language === "es" ? "Presentacion" : "Presentation")),
       slides
     };
   }
@@ -149,23 +151,23 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
   async function openPresentation() {
     const presentationWindow = window.open("", "_blank");
     if (!presentationWindow) {
-      window.alert("El navegador bloqueo la ventana de presentacion.");
+      window.alert(t.popupPresentationBlocked);
       return;
     }
 
-    presentationWindow.document.write(`<!doctype html><title>Preparando presentacion</title><body style="background:#111;color:#fff;font-family:system-ui;margin:0;padding:24px">Preparando presentacion...</body>`);
+    presentationWindow.document.write(`<!doctype html><title>${escapeHtml(t.preparingPresentation)}</title><body style="background:#111;color:#fff;font-family:system-ui;margin:0;padding:24px">${escapeHtml(t.preparingPresentation)}</body>`);
     presentationWindow.document.close();
 
-    setSaveState("exportando");
+    setSaveState("exporting");
     const presentation = await exportFrameSlides();
     if (!presentation) {
       presentationWindow.close();
-      setSaveState("guardado");
+      setSaveState("saved");
       return;
     }
 
     presentationWindow.document.write(`<!doctype html>
-<html lang="es">
+<html lang="${language}">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -207,29 +209,29 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
 </body>
 </html>`);
     presentationWindow.document.close();
-    setSaveState("guardado");
+    setSaveState("saved");
   }
 
   async function openPrintablePdf() {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      window.alert("El navegador bloqueo la ventana de PDF.");
+      window.alert(t.popupPdfBlocked);
       return;
     }
 
-    printWindow.document.write(`<!doctype html><title>Preparando PDF</title><body style="font-family:system-ui;padding:24px">Preparando PDF...</body>`);
+    printWindow.document.write(`<!doctype html><title>${escapeHtml(t.preparingPdf)}</title><body style="font-family:system-ui;padding:24px">${escapeHtml(t.preparingPdf)}</body>`);
     printWindow.document.close();
 
-    setSaveState("exportando");
+    setSaveState("exporting");
     const presentation = await exportFrameSlides();
     if (!presentation) {
       printWindow.close();
-      setSaveState("guardado");
+      setSaveState("saved");
       return;
     }
 
     printWindow.document.write(`<!doctype html>
-<html lang="es">
+<html lang="${language}">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -250,17 +252,17 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
 </head>
 <body>
   <div class="toolbar">
-    <button onclick="window.print()">Guardar PDF</button>
+    <button onclick="window.print()">${escapeHtml(t.savePdfButton)}</button>
   </div>
   ${presentation.slides.map((slide) => `<section class="slide">${slide}</section>`).join("\n")}
 </body>
 </html>`);
     printWindow.document.close();
-    setSaveState("guardado");
+    setSaveState("saved");
   }
 
   function renameProject() {
-    const nextTitle = window.prompt("Nombre del proyecto", title)?.trim();
+    const nextTitle = window.prompt(t.renamePrompt, title)?.trim();
     if (!nextTitle) return;
     setTitle(nextTitle);
     scheduleSave({ ...project.current, title: nextTitle });
@@ -271,8 +273,10 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
       <section className="editor-canvas">
         <ExcalidrawCanvas
           initialData={initialData.current}
+          language={language}
+          labels={t}
           name={title}
-          saveState={saveState}
+          saveState={t[saveState]}
           onDownload={downloadProject}
           onOpenPdf={openPrintablePdf}
           onOpenPresentation={openPresentation}

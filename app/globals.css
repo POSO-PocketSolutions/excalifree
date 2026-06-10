@@ -96,6 +96,10 @@ input {
   gap: 10px;
 }
 
+.align-end {
+  justify-content: flex-end;
+}
+
 .input {
   background: #fffaf0;
   border: 1px solid #d2c7b7;
@@ -109,27 +113,31 @@ input {
   height: 100vh;
 }
 
-.editor-toolbar {
-  align-items: center;
-  background: #fffaf0;
-  border-bottom: 1px solid #e0d7c8;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  padding: 10px 14px;
-}
-
-.editor-title {
-  background: transparent;
-  border: 0;
-  font-weight: 700;
-  max-width: 420px;
-  outline: 0;
-}
-
 .editor-canvas {
   height: 100vh;
   min-height: 0;
+}
+
+.language-toggle {
+  align-items: center;
+  border: 1px solid #d2c7b7;
+  border-radius: 999px;
+  display: inline-flex;
+  overflow: hidden;
+}
+
+.language-toggle button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.language-toggle button.active {
+  background: #17130d;
+  color: #fffaf0;
 }
 
 .excalidraw-home-menu-link {
@@ -147,13 +155,33 @@ input {
 .excalidraw-home-save-state {
   color: var(--color-gray-60);
   font-size: 12px;
-  padding: 0 0.625rem;
+}
+
+.excalidraw-home-menu-footer {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 0.375rem 0.625rem;
+}
+
+.excalidraw-home-menu-footer .language-toggle {
+  border-color: var(--default-border-color);
+}
+
+.excalidraw-home-menu-footer .language-toggle button {
+  min-height: 28px;
+  padding: 0 8px;
+}
+
+.excalidraw-home-menu-footer .language-toggle button.active {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
 }
 
 @media (max-width: 640px) {
   .project,
-  .topbar,
-  .editor-toolbar {
+  .topbar {
     align-items: stretch;
     flex-direction: column;
   }
