@@ -15,6 +15,13 @@ type SaveState = "saved" | "saving" | "changes" | "exporting";
 
 type SceneElement = Record<string, any>;
 
+function isEditableTarget(target: EventTarget | null) {
+  return target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    target instanceof HTMLElement && target.isContentEditable;
+}
+
 function cleanAppState(appState: Record<string, any> = {}) {
   return {
     theme: appState.theme || "light",
@@ -95,7 +102,16 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
   }
 
   useEffect(() => {
+    function handleShortcut(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && !isEditableTarget(event.target)) {
+        event.preventDefault();
+        openPresentation();
+      }
+    }
+
+    window.addEventListener("keydown", handleShortcut);
     return () => {
+      window.removeEventListener("keydown", handleShortcut);
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, []);
@@ -123,6 +139,8 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
 
     const { exportToSvg } = await import("@excalidraw/excalidraw");
     const slides = [];
+    const isDark = currentProject.appState.theme === "dark";
+    const slideBackground = isDark ? "#121212" : currentProject.appState.viewBackgroundColor || "#ffffff";
 
     for (const frame of frames) {
       const svg = await exportToSvg({
@@ -130,7 +148,9 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
         appState: {
           ...currentProject.appState,
           exportBackground: true,
-          viewBackgroundColor: currentProject.appState.viewBackgroundColor || "#ffffff",
+          exportWithDarkMode: isDark,
+          theme: isDark ? "dark" : "light",
+          viewBackgroundColor: slideBackground,
           frameRendering: {
             enabled: true,
             clip: true,
@@ -152,6 +172,8 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
 
     return {
       title: escapeHtml(currentProject.title || (language === "es" ? "Presentacion" : "Presentation")),
+      isDark,
+      slideBackground,
       slides
     };
   }
@@ -182,7 +204,7 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
   <title>${presentation.title}</title>
   <style>
     html, body { background: #000; height: 100%; margin: 0; overflow: hidden; width: 100%; }
-    .slide { align-items: center; background: #fff; display: none; height: 100vh; justify-content: center; width: 100vw; }
+    .slide { align-items: center; background: ${presentation.slideBackground}; display: none; height: 100vh; justify-content: center; width: 100vw; }
     .slide.active { display: flex; }
     .slide svg { display: block; max-height: 100vh; max-width: 100vw; }
   </style>
@@ -245,10 +267,10 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${presentation.title}</title>
   <style>
-    html, body { margin: 0; background: #111; color: #fff; font-family: system-ui, sans-serif; }
+    html, body { margin: 0; background: ${presentation.isDark ? "#000" : "#111"}; color: #fff; font-family: system-ui, sans-serif; }
     .toolbar { position: fixed; z-index: 10; top: 12px; right: 12px; display: flex; gap: 8px; }
     .toolbar button { border: 0; border-radius: 999px; padding: 10px 14px; background: #fff; color: #111; cursor: pointer; }
-    .slide { align-items: center; background: #fff; display: flex; height: 100vh; justify-content: center; page-break-after: always; width: 100vw; }
+    .slide { align-items: center; background: ${presentation.slideBackground}; display: flex; height: 100vh; justify-content: center; page-break-after: always; width: 100vw; }
     .slide svg { display: block; max-height: 100vh; max-width: 100vw; }
     @media print {
       html, body { background: #fff; }

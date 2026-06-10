@@ -103,6 +103,12 @@ Present       Open slideshow mode
 Save PDF      Open printable PDF view
 ```
 
+Editor shortcuts:
+
+```text
+Ctrl+Enter / Cmd+Enter        Open slideshow mode
+```
+
 Slideshow shortcuts:
 
 ```text
