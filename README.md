@@ -1,11 +1,11 @@
 # Excalidraw Home
 
-Excalidraw local para usar en casa con Docker.
+Excalidraw self-hosted con proyectos locales.
 
 ## Uso
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 Abrir:
@@ -19,6 +19,10 @@ Desde otra maquina de la red:
 ```text
 http://desktop:3030
 ```
+
+## Datos
+
+Los proyectos se guardan en el volumen `excalidraw_data`.
 
 ## Apagar
 
@@ -38,4 +42,4 @@ Cuando se quiera publicar como `excali.mnsosa.com`, apuntar el tunnel a:
 http://localhost:3030
 ```
 
-Si queda publico, cualquiera con la URL puede abrir la app. Para restringirlo, usar Cloudflare Access.
+Si queda publico, cualquiera con la URL puede abrir y editar proyectos. Para restringirlo, usar Cloudflare Access.
