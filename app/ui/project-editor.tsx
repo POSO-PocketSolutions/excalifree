@@ -39,25 +39,30 @@ function cleanAppState(appState: Record<string, any>) {
 }
 
 export function ProjectEditor({ initialProject }: { initialProject: Project }) {
-  const [project, setProject] = useState(initialProject);
+  const [title, setTitle] = useState(initialProject.title);
   const [saveState, setSaveState] = useState<SaveState>("guardado");
+  const initialData = useRef({ elements: initialProject.elements, files: initialProject.files });
+  const project = useRef(initialProject);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveVersion = useRef(0);
 
-  async function save(nextProject: Project) {
+  async function save(nextProject: Project, version: number) {
     setSaveState("guardando");
     await fetch(`/api/projects/${nextProject.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(nextProject)
     });
-    setSaveState("guardado");
+    if (saveVersion.current === version) setSaveState("guardado");
   }
 
-  function scheduleSave(nextProject: Project) {
-    setProject(nextProject);
-    setSaveState("cambios");
+  function scheduleSave(nextProject: Project, showPending = true) {
+    project.current = nextProject;
+    saveVersion.current += 1;
+    const version = saveVersion.current;
+    if (showPending) setSaveState("cambios");
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => save(nextProject), 800);
+    saveTimer.current = setTimeout(() => save(nextProject, version), 800);
   }
 
   useEffect(() => {
@@ -67,11 +72,12 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
   }, []);
 
   function downloadProject() {
-    const blob = new Blob([JSON.stringify(project, null, 2)], { type: "application/json" });
+    const currentProject = project.current;
+    const blob = new Blob([JSON.stringify(currentProject, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${project.title || "proyecto"}.excalidraw`;
+    link.download = `${currentProject.title || "proyecto"}.excalidraw`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -83,8 +89,12 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
           <Link className="button secondary" href="/">Volver</Link>
           <input
             className="editor-title"
-            onChange={(event) => scheduleSave({ ...project, title: event.target.value })}
-            value={project.title}
+            onChange={(event) => {
+              const nextTitle = event.target.value;
+              setTitle(nextTitle);
+              scheduleSave({ ...project.current, title: nextTitle });
+            }}
+            value={title}
           />
           <span className="muted">{saveState}</span>
         </div>
@@ -93,17 +103,14 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
 
       <section className="editor-canvas">
         <Excalidraw
-          initialData={{
-            elements: project.elements,
-            files: project.files
-          }}
+          initialData={initialData.current}
           onChange={(elements, appState, files) => {
             scheduleSave({
-              ...project,
+              ...project.current,
               elements,
               appState: cleanAppState(appState),
               files
-            });
+            }, false);
           }}
         />
       </section>
