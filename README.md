@@ -24,6 +24,12 @@ http://desktop:3030
 
 Los proyectos se guardan en el volumen `excalidraw_data`.
 
+## Presentaciones
+
+En el editor, usar frames de Excalidraw como diapositivas.
+
+El boton `PDF frames` exporta un PDF con una pagina por frame, ordenadas de arriba a abajo y de izquierda a derecha.
+
 ## Apagar
 
 ```bash

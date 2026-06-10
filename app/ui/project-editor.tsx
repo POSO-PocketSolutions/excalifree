@@ -11,7 +11,9 @@ const Excalidraw = dynamic(async () => (await import("@excalidraw/excalidraw")).
   ssr: false
 });
 
-type SaveState = "guardado" | "guardando" | "cambios";
+type SaveState = "guardado" | "guardando" | "cambios" | "exportando";
+
+type SceneElement = Record<string, any>;
 
 function cleanAppState(appState: Record<string, any>) {
   const {
@@ -36,6 +38,23 @@ function cleanAppState(appState: Record<string, any>) {
   } = appState;
 
   return safeAppState;
+}
+
+function isFrame(element: SceneElement) {
+  return (element.type === "frame" || element.type === "magicframe") && !element.isDeleted;
+}
+
+function isElementInsideFrame(element: SceneElement, frame: SceneElement) {
+  if (element.id === frame.id || element.frameId === frame.id) return true;
+  if (element.isDeleted || isFrame(element)) return false;
+
+  const centerX = element.x + element.width / 2;
+  const centerY = element.y + element.height / 2;
+  return centerX >= frame.x && centerX <= frame.x + frame.width && centerY >= frame.y && centerY <= frame.y + frame.height;
+}
+
+function getFrames(elements: readonly SceneElement[]) {
+  return elements.filter(isFrame).sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
 }
 
 export function ProjectEditor({ initialProject }: { initialProject: Project }) {
@@ -82,6 +101,49 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
     URL.revokeObjectURL(url);
   }
 
+  async function exportFramesToPdf() {
+    const currentProject = project.current;
+    const elements = currentProject.elements as readonly SceneElement[];
+    const frames = getFrames(elements);
+
+    if (frames.length === 0) {
+      window.alert("No hay frames para exportar.");
+      return;
+    }
+
+    setSaveState("exportando");
+    const { exportToCanvas } = await import("@excalidraw/excalidraw");
+    const { jsPDF } = await import("jspdf");
+    let pdf: InstanceType<typeof jsPDF> | null = null;
+
+    for (const [index, frame] of frames.entries()) {
+      const frameElements = elements.filter((element) => isElementInsideFrame(element, frame));
+      const canvas = await exportToCanvas({
+        elements: frameElements as any,
+        appState: {
+          exportBackground: true,
+          viewBackgroundColor: currentProject.appState.viewBackgroundColor || "#ffffff"
+        },
+        files: currentProject.files as any,
+        exportPadding: 0,
+        exportingFrame: frame as any,
+        getDimensions: () => ({ width: frame.width, height: frame.height, scale: 2 })
+      });
+
+      const orientation = canvas.width >= canvas.height ? "landscape" : "portrait";
+      if (!pdf) {
+        pdf = new jsPDF({ orientation, unit: "px", format: [canvas.width, canvas.height] });
+      } else {
+        pdf.addPage([canvas.width, canvas.height], orientation);
+      }
+
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, canvas.width, canvas.height);
+      if (index === frames.length - 1) pdf.save(`${currentProject.title || "presentacion"}.pdf`);
+    }
+
+    setSaveState("guardado");
+  }
+
   return (
     <main className="editor-page">
       <header className="editor-toolbar">
@@ -98,7 +160,10 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
           />
           <span className="muted">{saveState}</span>
         </div>
-        <button className="button secondary" onClick={downloadProject} type="button">Exportar</button>
+        <div className="row">
+          <button className="button secondary" onClick={exportFramesToPdf} type="button">PDF frames</button>
+          <button className="button secondary" onClick={downloadProject} type="button">Exportar</button>
+        </div>
       </header>
 
       <section className="editor-canvas">
