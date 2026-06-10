@@ -10,14 +10,14 @@
   },
   "dependencies": {
     "@excalidraw/excalidraw": "0.18.1",
-    "next": "16.2.9",
-    "react": "19.2.1",
-    "react-dom": "19.2.1"
+    "next": "15.5.19",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
     "@types/node": "22.15.3",
-    "@types/react": "19.2.7",
-    "@types/react-dom": "19.2.3",
+    "@types/react": "18.3.25",
+    "@types/react-dom": "18.3.7",
     "typescript": "5.9.3"
   }
 }

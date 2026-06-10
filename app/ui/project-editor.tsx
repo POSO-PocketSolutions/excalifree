@@ -13,6 +13,31 @@ const Excalidraw = dynamic(async () => (await import("@excalidraw/excalidraw")).
 
 type SaveState = "guardado" | "guardando" | "cambios";
 
+function cleanAppState(appState: Record<string, any>) {
+  const {
+    collaborators,
+    currentItemFontFamily,
+    currentItemFontSize,
+    currentItemRoundness,
+    editingElement,
+    editingLinearElement,
+    editingTextElement,
+    errorMessage,
+    openDialog,
+    openPopup,
+    pendingImageElementId,
+    selectedElementIds,
+    selectedGroupIds,
+    selectedLinearElement,
+    selectionElement,
+    suggestedBindings,
+    toast,
+    ...safeAppState
+  } = appState;
+
+  return safeAppState;
+}
+
 export function ProjectEditor({ initialProject }: { initialProject: Project }) {
   const [project, setProject] = useState(initialProject);
   const [saveState, setSaveState] = useState<SaveState>("guardado");
@@ -70,14 +95,13 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
         <Excalidraw
           initialData={{
             elements: project.elements,
-            appState: project.appState,
             files: project.files
           }}
           onChange={(elements, appState, files) => {
             scheduleSave({
               ...project,
               elements,
-              appState: { ...appState, collaborators: undefined },
+              appState: cleanAppState(appState),
               files
             });
           }}
