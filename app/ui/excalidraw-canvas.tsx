@@ -17,6 +17,7 @@ type ExcalidrawCanvasProps = {
   onDownload: () => void;
   onOpenPdf: () => void;
   onOpenPresentation: () => void;
+  onOpenSlides: () => void;
   onRename: () => void;
 };
 
@@ -35,6 +36,7 @@ export function ExcalidrawCanvas({
   onDownload,
   onOpenPdf,
   onOpenPresentation,
+  onOpenSlides,
   onRename
 }: ExcalidrawCanvasProps) {
   return (
@@ -50,6 +52,7 @@ export function ExcalidrawCanvas({
           <Link className="poso-draw-menu-link" href="/">{labels.backToProjects}</Link>
           <MenuItem onSelect={onRename}>{labels.rename}</MenuItem>
           <MenuItem onSelect={onOpenPresentation}>{labels.present}</MenuItem>
+          <MenuItem onSelect={onOpenSlides}>{labels.slidesLibrary}</MenuItem>
           <MenuItem onSelect={onOpenPdf}>{labels.savePdf}</MenuItem>
           <MenuItem onSelect={onDownload}>{labels.exportFile}</MenuItem>
         </MainMenu.Group>

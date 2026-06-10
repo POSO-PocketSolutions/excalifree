@@ -38,6 +38,7 @@ Dockerfile                      Production Next.js image
 - Drawing editor powered by Excalidraw with autosave.
 - Projects stored as JSON files.
 - Custom Excalidraw menu without social links.
+- Slide sidebar for frame order and visibility.
 - Frame-based presentation mode.
 - Printable PDF view, one page per frame.
 - Docker restart policy: `unless-stopped`.

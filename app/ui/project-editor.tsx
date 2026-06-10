@@ -15,6 +15,11 @@ type SaveState = "saved" | "saving" | "changes" | "exporting";
 
 type SceneElement = Record<string, any>;
 
+type SlideSettings = {
+  order: string[];
+  hidden: string[];
+};
+
 function isEditableTarget(target: EventTarget | null) {
   return target instanceof HTMLInputElement ||
     target instanceof HTMLTextAreaElement ||
@@ -25,7 +30,8 @@ function isEditableTarget(target: EventTarget | null) {
 function cleanAppState(appState: Record<string, any> = {}) {
   return {
     theme: appState.theme || "light",
-    viewBackgroundColor: appState.viewBackgroundColor || "#ffffff"
+    viewBackgroundColor: appState.viewBackgroundColor || "#ffffff",
+    posoDrawSlides: normalizeSlideSettings([], appState.posoDrawSlides)
   };
 }
 
@@ -46,6 +52,30 @@ function getFrames(elements: readonly SceneElement[]) {
   return elements.filter(isFrame).sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
 }
 
+function frameTitle(frame: SceneElement, index: number) {
+  return frame.name || `Frame ${index + 1}`;
+}
+
+function normalizeSlideSettings(frames: readonly SceneElement[], settings?: Partial<SlideSettings>) {
+  const frameIds = new Set(frames.map((frame) => frame.id));
+  const order = [
+    ...(settings?.order || []).filter((id) => frameIds.size === 0 || frameIds.has(id)),
+    ...frames.map((frame) => frame.id).filter((id) => !(settings?.order || []).includes(id))
+  ];
+  const uniqueOrder = Array.from(new Set(order));
+  const hidden = (settings?.hidden || []).filter((id) => frameIds.size === 0 || frameIds.has(id));
+
+  return { order: uniqueOrder, hidden: Array.from(new Set(hidden)) };
+}
+
+function orderedFrames(frames: readonly SceneElement[], settings: SlideSettings, includeHidden: boolean) {
+  const byId = new Map(frames.map((frame) => [frame.id, frame]));
+  return settings.order
+    .map((id) => byId.get(id))
+    .filter((frame): frame is SceneElement => Boolean(frame))
+    .filter((frame) => includeHidden || !settings.hidden.includes(frame.id));
+}
+
 function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (char) => ({
     "&": "&amp;",
@@ -61,6 +91,8 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
   const [title, setTitle] = useState(initialProject.title);
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [lastSavedAt, setLastSavedAt] = useState(() => new Date(initialProject.updatedAt));
+  const [slidesOpen, setSlidesOpen] = useState(false);
+  const [frames, setFrames] = useState(() => getFrames(initialProject.elements as readonly SceneElement[]));
   const initialData = useRef({ elements: initialProject.elements, appState: initialProject.appState, files: initialProject.files });
   const project = useRef(initialProject);
   const savedSnapshot = useRef(projectSnapshot(initialProject));
@@ -130,7 +162,7 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
   async function exportFrameSlides() {
     const currentProject = project.current;
     const elements = currentProject.elements as readonly SceneElement[];
-    const frames = getFrames(elements);
+    const frames = orderedFrames(getFrames(elements), normalizeSlideSettings(getFrames(elements), currentProject.appState.posoDrawSlides), false);
 
     if (frames.length === 0) {
       window.alert(t.noFrames);
@@ -298,6 +330,35 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
     scheduleSave({ ...project.current, title: nextTitle });
   }
 
+  function updateSlideSettings(nextSettings: SlideSettings) {
+    const nextProject = {
+      ...project.current,
+      appState: cleanAppState({
+        ...project.current.appState,
+        posoDrawSlides: nextSettings
+      })
+    };
+    scheduleSave(nextProject);
+  }
+
+  function moveSlide(frameId: string, direction: -1 | 1) {
+    const settings = normalizeSlideSettings(frames, project.current.appState.posoDrawSlides);
+    const index = settings.order.indexOf(frameId);
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || nextIndex >= settings.order.length) return;
+    const nextOrder = [...settings.order];
+    [nextOrder[index], nextOrder[nextIndex]] = [nextOrder[nextIndex], nextOrder[index]];
+    updateSlideSettings({ ...settings, order: nextOrder });
+  }
+
+  function toggleSlide(frameId: string) {
+    const settings = normalizeSlideSettings(frames, project.current.appState.posoDrawSlides);
+    const hidden = settings.hidden.includes(frameId)
+      ? settings.hidden.filter((id) => id !== frameId)
+      : [...settings.hidden, frameId];
+    updateSlideSettings({ ...settings, hidden });
+  }
+
   function saveLabel() {
     if (saveState === "exporting") return t.exporting;
     if (saveState === "saving") return t.savingChanges;
@@ -320,6 +381,7 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
           onDownload={downloadProject}
           onOpenPdf={openPrintablePdf}
           onOpenPresentation={openPresentation}
+          onOpenSlides={() => setSlidesOpen(true)}
           onRename={renameProject}
           UIOptions={{
             canvasActions: {
@@ -329,14 +391,58 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
             }
           }}
           onChange={(elements, appState, files) => {
+            const nextFrames = getFrames(elements as readonly SceneElement[]);
+            setFrames(nextFrames);
             scheduleSave({
               ...project.current,
               elements,
-              appState: cleanAppState(appState),
+              appState: cleanAppState({
+                ...appState,
+                posoDrawSlides: project.current.appState.posoDrawSlides
+              }),
               files
             });
           }}
         />
+        {slidesOpen ? (
+          <aside className="slides-panel" aria-label={t.slidesPanelTitle}>
+            <div className="slides-panel-header">
+              <div>
+                <h2>{t.slidesPanelTitle}</h2>
+                <p>{t.slidesPanelText}</p>
+              </div>
+              <button className="slides-panel-close" onClick={() => setSlidesOpen(false)} type="button">{t.close}</button>
+            </div>
+            <div className="slides-list">
+              {orderedFrames(frames, normalizeSlideSettings(frames, project.current.appState.posoDrawSlides), true).length === 0 ? (
+                <p className="slides-empty">{t.noSlides}</p>
+              ) : null}
+              {orderedFrames(frames, normalizeSlideSettings(frames, project.current.appState.posoDrawSlides), true).map((frame, index) => {
+                const settings = normalizeSlideSettings(frames, project.current.appState.posoDrawSlides);
+                const isHidden = settings.hidden.includes(frame.id);
+                return (
+                  <article className={`slide-card${isHidden ? " hidden" : ""}`} key={frame.id}>
+                    <div className="slide-thumb">
+                      <span>{index + 1}</span>
+                    </div>
+                    <div className="slide-card-body">
+                      <strong>{frameTitle(frame, index)}</strong>
+                      <small>{Math.round(frame.width)} x {Math.round(frame.height)}</small>
+                      <label className="slide-visible-toggle">
+                        <input checked={!isHidden} onChange={() => toggleSlide(frame.id)} type="checkbox" />
+                        {isHidden ? t.hideSlide : t.showSlide}
+                      </label>
+                    </div>
+                    <div className="slide-actions">
+                      <button disabled={index === 0} onClick={() => moveSlide(frame.id, -1)} type="button">{t.moveUp}</button>
+                      <button disabled={index === settings.order.length - 1} onClick={() => moveSlide(frame.id, 1)} type="button">{t.moveDown}</button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </aside>
+        ) : null}
       </section>
     </main>
   );

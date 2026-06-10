@@ -179,6 +179,127 @@ input {
   color: var(--color-primary-contrast);
 }
 
+.slides-panel {
+  background: rgba(255, 250, 240, 0.96);
+  border-right: 1px solid #e0d7c8;
+  box-shadow: 18px 0 60px rgba(23, 19, 13, 0.16);
+  color: #17130d;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  left: 0;
+  max-width: 360px;
+  padding: 18px;
+  position: fixed;
+  top: 0;
+  width: min(360px, 92vw);
+  z-index: 20;
+}
+
+.slides-panel-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.slides-panel-header h2 {
+  font-size: 22px;
+  letter-spacing: -0.04em;
+  margin: 0 0 8px;
+}
+
+.slides-panel-header p,
+.slides-empty {
+  color: #6d6255;
+  font-size: 13px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.slides-panel-close,
+.slide-actions button {
+  background: #17130d;
+  border: 1px solid #17130d;
+  border-radius: 999px;
+  color: #fffaf0;
+  cursor: pointer;
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+.slides-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.slide-card {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e0d7c8;
+  border-radius: 18px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 78px 1fr;
+  padding: 10px;
+}
+
+.slide-card.hidden {
+  opacity: 0.52;
+}
+
+.slide-thumb {
+  align-items: center;
+  aspect-ratio: 16 / 10;
+  background: #f7f3ea;
+  border: 2px solid #17130d;
+  border-radius: 10px;
+  box-shadow: 5px 5px 0 #17130d;
+  display: flex;
+  justify-content: center;
+}
+
+.slide-thumb span {
+  color: #4d4cf8;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.slide-card-body {
+  display: grid;
+  gap: 4px;
+}
+
+.slide-card-body strong {
+  font-size: 14px;
+}
+
+.slide-card-body small,
+.slide-visible-toggle {
+  color: #6d6255;
+  font-size: 12px;
+}
+
+.slide-visible-toggle {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.slide-actions {
+  display: flex;
+  gap: 6px;
+  grid-column: 1 / -1;
+}
+
+.slide-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
 @media (max-width: 640px) {
   .project,
   .topbar {
