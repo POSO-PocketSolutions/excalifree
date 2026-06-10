@@ -15,29 +15,20 @@ type SaveState = "saved" | "saving" | "changes" | "exporting";
 
 type SceneElement = Record<string, any>;
 
-function cleanAppState(appState: Record<string, any>) {
-  const {
-    collaborators,
-    currentItemFontFamily,
-    currentItemFontSize,
-    currentItemRoundness,
-    editingElement,
-    editingLinearElement,
-    editingTextElement,
-    errorMessage,
-    openDialog,
-    openPopup,
-    pendingImageElementId,
-    selectedElementIds,
-    selectedGroupIds,
-    selectedLinearElement,
-    selectionElement,
-    suggestedBindings,
-    toast,
-    ...safeAppState
-  } = appState;
+function cleanAppState(appState: Record<string, any> = {}) {
+  return {
+    theme: appState.theme || "light",
+    viewBackgroundColor: appState.viewBackgroundColor || "#ffffff"
+  };
+}
 
-  return safeAppState;
+function projectSnapshot(project: Project) {
+  return JSON.stringify({
+    title: project.title,
+    elements: project.elements,
+    appState: cleanAppState(project.appState),
+    files: project.files
+  });
 }
 
 function isFrame(element: SceneElement) {
@@ -62,8 +53,11 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
   const { language, t } = useLanguage();
   const [title, setTitle] = useState(initialProject.title);
   const [saveState, setSaveState] = useState<SaveState>("saved");
-  const initialData = useRef({ elements: initialProject.elements, files: initialProject.files });
+  const [lastSavedAt, setLastSavedAt] = useState(() => new Date(initialProject.updatedAt));
+  const initialData = useRef({ elements: initialProject.elements, appState: initialProject.appState, files: initialProject.files });
   const project = useRef(initialProject);
+  const savedSnapshot = useRef(projectSnapshot(initialProject));
+  const pendingSnapshot = useRef(savedSnapshot.current);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveVersion = useRef(0);
 
@@ -74,11 +68,25 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(nextProject)
     });
-    if (saveVersion.current === version) setSaveState("saved");
+    if (saveVersion.current === version) {
+      const savedAt = new Date();
+      savedSnapshot.current = projectSnapshot(nextProject);
+      pendingSnapshot.current = savedSnapshot.current;
+      project.current = { ...nextProject, updatedAt: savedAt.toISOString() };
+      setLastSavedAt(savedAt);
+      setSaveState("saved");
+    }
   }
 
   function scheduleSave(nextProject: Project, showPending = true) {
+    const nextSnapshot = projectSnapshot(nextProject);
+    if (nextSnapshot === savedSnapshot.current || nextSnapshot === pendingSnapshot.current) {
+      project.current = nextProject;
+      return;
+    }
+
     project.current = nextProject;
+    pendingSnapshot.current = nextSnapshot;
     saveVersion.current += 1;
     const version = saveVersion.current;
     if (showPending) setSaveState("changes");
@@ -268,6 +276,16 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
     scheduleSave({ ...project.current, title: nextTitle });
   }
 
+  function saveLabel() {
+    if (saveState === "exporting") return t.exporting;
+    if (saveState === "saving") return t.savingChanges;
+    if (saveState === "changes") return t.unsavedChanges;
+    return `${t.lastSaved} ${lastSavedAt.toLocaleTimeString(language === "es" ? "es-AR" : "en-US", {
+      hour: "2-digit",
+      minute: "2-digit"
+    })}`;
+  }
+
   return (
     <main className="editor-page">
       <section className="editor-canvas">
@@ -276,7 +294,7 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
           language={language}
           labels={t}
           name={title}
-          saveState={t[saveState]}
+          saveState={saveLabel()}
           onDownload={downloadProject}
           onOpenPdf={openPrintablePdf}
           onOpenPresentation={openPresentation}
@@ -294,7 +312,7 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
               elements,
               appState: cleanAppState(appState),
               files
-            }, false);
+            });
           }}
         />
       </section>

@@ -1,7 +1,7 @@
 services:
-  excalidraw-home:
+  poso-draw:
     build: .
-    container_name: excalidraw-home
+    container_name: poso-draw
     restart: unless-stopped
     environment:
       DATA_DIR: /data
@@ -9,7 +9,7 @@ services:
     ports:
       - "3030:3000"
     volumes:
-      - excalidraw_data:/data
+      - poso_draw_data:/data
 
 volumes:
-  excalidraw_data:
+  poso_draw_data:

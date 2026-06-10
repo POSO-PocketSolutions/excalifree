@@ -6,7 +6,7 @@ export type Language = "en" | "es";
 
 const strings = {
   en: {
-    appLabel: "Self-hosted Excalidraw",
+    appLabel: "POSO DRAW",
     projectsTitle: "Your projects",
     projectName: "Project name",
     create: "Create",
@@ -28,13 +28,13 @@ const strings = {
     preparingPresentation: "Preparing presentation...",
     preparingPdf: "Preparing PDF...",
     savePdfButton: "Save PDF",
-    saved: "saved",
-    saving: "saving",
-    changes: "changes",
-    exporting: "exporting"
+    lastSaved: "Last saved",
+    unsavedChanges: "Unsaved changes",
+    savingChanges: "Saving changes...",
+    exporting: "Exporting..."
   },
   es: {
-    appLabel: "Excalidraw self-hosted",
+    appLabel: "POSO DRAW",
     projectsTitle: "Tus proyectos",
     projectName: "Nombre del proyecto",
     create: "Crear",
@@ -56,10 +56,10 @@ const strings = {
     preparingPresentation: "Preparando presentacion...",
     preparingPdf: "Preparando PDF...",
     savePdfButton: "Guardar PDF",
-    saved: "guardado",
-    saving: "guardando",
-    changes: "cambios",
-    exporting: "exportando"
+    lastSaved: "Ultimo guardado",
+    unsavedChanges: "Cambios sin guardar",
+    savingChanges: "Guardando cambios...",
+    exporting: "Exportando..."
   }
 };
 
@@ -67,7 +67,7 @@ export function useLanguage() {
   const [language, setLanguageState] = useState<Language>("en");
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("excalidraw-home-language");
+    const stored = window.localStorage.getItem("poso-draw-language");
     const nextLanguage = stored === "es" ? "es" : "en";
     setLanguageState(nextLanguage);
     document.documentElement.lang = nextLanguage;
@@ -80,15 +80,15 @@ export function useLanguage() {
       }
     }
 
-    window.addEventListener("excalidraw-home-language", handleLanguageChange);
-    return () => window.removeEventListener("excalidraw-home-language", handleLanguageChange);
+    window.addEventListener("poso-draw-language", handleLanguageChange);
+    return () => window.removeEventListener("poso-draw-language", handleLanguageChange);
   }, []);
 
   function setLanguage(nextLanguage: Language) {
     setLanguageState(nextLanguage);
-    window.localStorage.setItem("excalidraw-home-language", nextLanguage);
+    window.localStorage.setItem("poso-draw-language", nextLanguage);
     document.documentElement.lang = nextLanguage;
-    window.dispatchEvent(new CustomEvent("excalidraw-home-language", { detail: nextLanguage }));
+    window.dispatchEvent(new CustomEvent("poso-draw-language", { detail: nextLanguage }));
   }
 
   return { language, setLanguage, t: strings[language] };

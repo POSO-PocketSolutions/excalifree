@@ -47,7 +47,7 @@ export function ExcalidrawCanvas({
     >
       <MainMenu>
         <MainMenu.Group title={labels.projectMenu}>
-          <Link className="excalidraw-home-menu-link" href="/">{labels.backToProjects}</Link>
+          <Link className="poso-draw-menu-link" href="/">{labels.backToProjects}</Link>
           <MenuItem onSelect={onRename}>{labels.rename}</MenuItem>
           <MenuItem onSelect={onOpenPresentation}>{labels.present}</MenuItem>
           <MenuItem onSelect={onOpenPdf}>{labels.savePdf}</MenuItem>
@@ -57,13 +57,14 @@ export function ExcalidrawCanvas({
         <MainMenu.Group title="Excalidraw">
           <MainMenu.DefaultItems.SaveAsImage />
           <MainMenu.DefaultItems.ChangeCanvasBackground />
+          <MainMenu.DefaultItems.ToggleTheme allowSystemTheme={false} />
           <MainMenu.DefaultItems.ClearCanvas />
           <MainMenu.DefaultItems.Help />
         </MainMenu.Group>
         <MainMenu.Separator />
         <MainMenu.ItemCustom>
-          <div className="excalidraw-home-menu-footer">
-            <span className="excalidraw-home-save-state">{saveState}</span>
+          <div className="poso-draw-menu-footer">
+            <span className="poso-draw-save-state">{saveState}</span>
             <LanguageToggle />
           </div>
         </MainMenu.ItemCustom>

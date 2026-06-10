@@ -1,6 +1,6 @@
-# Excalidraw Home
+# POSO DRAW
 
-Self-hosted Excalidraw with local projects, autosave, frame presentations, and PDF export.
+Self-hosted drawing app with local projects, autosave, frame presentations, and PDF export.
 
 ## Architecture
 
@@ -10,10 +10,10 @@ This is a small Next.js app wrapped in Docker.
 Browser
   -> Next.js app on port 3030
       -> Project dashboard
-      -> Excalidraw editor
+      -> Drawing editor powered by Excalidraw
       -> API routes for project data
           -> JSON files in /data
-              -> Docker volume excalidraw_data
+              -> Docker volume poso_draw_data
 ```
 
 Main parts:
@@ -35,7 +35,7 @@ Dockerfile                      Production Next.js image
 
 - Local project dashboard.
 - English and Spanish UI.
-- Excalidraw editor with autosave.
+- Drawing editor powered by Excalidraw with autosave.
 - Projects stored as JSON files.
 - Custom Excalidraw menu without social links.
 - Frame-based presentation mode.
@@ -82,7 +82,7 @@ docker compose ps
 
 Projects are saved in `/data` inside the container.
 
-Docker persists that folder in the `excalidraw_data` volume.
+Docker persists that folder in the `poso_draw_data` volume.
 
 Useful commands:
 
@@ -125,3 +125,15 @@ Production build:
 ```bash
 npm run build
 ```
+
+## Promo Asset
+
+The POSO DRAW promo still is tracked in this repo:
+
+```text
+public/poso-draw-promo.png
+```
+
+## License
+
+This project is licensed under MIT. It uses Excalidraw as a React component under MIT too. See `THIRD_PARTY_NOTICES.md` for attribution.
