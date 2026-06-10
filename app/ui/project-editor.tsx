@@ -44,17 +44,18 @@ function isFrame(element: SceneElement) {
   return (element.type === "frame" || element.type === "magicframe") && !element.isDeleted;
 }
 
-function isElementInsideFrame(element: SceneElement, frame: SceneElement) {
-  if (element.id === frame.id || element.frameId === frame.id) return true;
-  if (element.isDeleted || isFrame(element)) return false;
-
-  const centerX = element.x + element.width / 2;
-  const centerY = element.y + element.height / 2;
-  return centerX >= frame.x && centerX <= frame.x + frame.width && centerY >= frame.y && centerY <= frame.y + frame.height;
-}
-
 function getFrames(elements: readonly SceneElement[]) {
   return elements.filter(isFrame).sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>'"]/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    "\"": "&quot;"
+  }[char] || char));
 }
 
 export function ProjectEditor({ initialProject }: { initialProject: Project }) {
@@ -101,7 +102,7 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
     URL.revokeObjectURL(url);
   }
 
-  async function exportFramesToPdf() {
+  async function openPresentation() {
     const currentProject = project.current;
     const elements = currentProject.elements as readonly SceneElement[];
     const frames = getFrames(elements);
@@ -112,35 +113,71 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
     }
 
     setSaveState("exportando");
-    const { exportToCanvas } = await import("@excalidraw/excalidraw");
-    const { jsPDF } = await import("jspdf");
-    let pdf: InstanceType<typeof jsPDF> | null = null;
+    const { exportToSvg } = await import("@excalidraw/excalidraw");
+    const slides = [];
 
-    for (const [index, frame] of frames.entries()) {
-      const frameElements = elements.filter((element) => isElementInsideFrame(element, frame));
-      const canvas = await exportToCanvas({
-        elements: frameElements as any,
+    for (const frame of frames) {
+      const svg = await exportToSvg({
+        elements: elements.filter((element) => !element.isDeleted) as any,
         appState: {
+          ...currentProject.appState,
           exportBackground: true,
-          viewBackgroundColor: currentProject.appState.viewBackgroundColor || "#ffffff"
+          viewBackgroundColor: currentProject.appState.viewBackgroundColor || "#ffffff",
+          frameRendering: {
+            enabled: true,
+            clip: true,
+            name: false,
+            outline: false
+          }
         },
         files: currentProject.files as any,
         exportPadding: 0,
         exportingFrame: frame as any,
-        getDimensions: () => ({ width: frame.width, height: frame.height, scale: 2 })
+        renderEmbeddables: true
       });
 
-      const orientation = canvas.width >= canvas.height ? "landscape" : "portrait";
-      if (!pdf) {
-        pdf = new jsPDF({ orientation, unit: "px", format: [canvas.width, canvas.height] });
-      } else {
-        pdf.addPage([canvas.width, canvas.height], orientation);
-      }
-
-      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, canvas.width, canvas.height);
-      if (index === frames.length - 1) pdf.save(`${currentProject.title || "presentacion"}.pdf`);
+      svg.setAttribute("width", "100%");
+      svg.setAttribute("height", "100%");
+      svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+      slides.push(new XMLSerializer().serializeToString(svg));
     }
 
+    const title = escapeHtml(currentProject.title || "Presentacion");
+    const printWindow = window.open("", "_blank", "noopener,noreferrer");
+    if (!printWindow) {
+      window.alert("El navegador bloqueo la ventana de presentacion.");
+      setSaveState("guardado");
+      return;
+    }
+
+    printWindow.document.write(`<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${title}</title>
+  <style>
+    html, body { margin: 0; background: #111; color: #fff; font-family: system-ui, sans-serif; }
+    .toolbar { position: fixed; z-index: 10; top: 12px; right: 12px; display: flex; gap: 8px; }
+    .toolbar button { border: 0; border-radius: 999px; padding: 10px 14px; background: #fff; color: #111; cursor: pointer; }
+    .slide { align-items: center; background: #fff; display: flex; height: 100vh; justify-content: center; page-break-after: always; width: 100vw; }
+    .slide svg { display: block; max-height: 100vh; max-width: 100vw; }
+    @media print {
+      html, body { background: #fff; }
+      .toolbar { display: none; }
+      .slide { break-after: page; height: 100vh; page-break-after: always; width: 100vw; }
+      .slide:last-child { break-after: auto; page-break-after: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button onclick="window.print()">Guardar PDF</button>
+  </div>
+  ${slides.map((slide) => `<section class="slide">${slide}</section>`).join("\n")}
+</body>
+</html>`);
+    printWindow.document.close();
     setSaveState("guardado");
   }
 
@@ -161,7 +198,7 @@ export function ProjectEditor({ initialProject }: { initialProject: Project }) {
           <span className="muted">{saveState}</span>
         </div>
         <div className="row">
-          <button className="button secondary" onClick={exportFramesToPdf} type="button">PDF frames</button>
+          <button className="button secondary" onClick={openPresentation} type="button">Presentar / PDF</button>
           <button className="button secondary" onClick={downloadProject} type="button">Exportar</button>
         </div>
       </header>
